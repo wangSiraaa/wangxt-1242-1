@@ -68,6 +68,7 @@ export const stepStatusLabels: Record<
   pending: { name: '待执行', color: 'text-gray-500', bgColor: 'bg-gray-100' },
   in_progress: { name: '执行中', color: 'text-blue-600', bgColor: 'bg-blue-50' },
   completed: { name: '已完成', color: 'text-green-600', bgColor: 'bg-green-50' },
+  pending_batch: { name: '待补录', color: 'text-amber-600', bgColor: 'bg-amber-50' },
 };
 
 export const reviewDecisionLabels: Record<
@@ -134,6 +135,7 @@ export const restorationStepStatusLabels: Record<
   pending: { name: '待执行', variant: 'secondary' },
   in_progress: { name: '执行中', variant: 'warning' },
   completed: { name: '已完成', variant: 'success' },
+  pending_batch: { name: '待补录', variant: 'warning' },
 };
 
 export const imageTypeLabels: Record<

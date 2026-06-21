@@ -4,8 +4,8 @@
   import { CheckCircle, XCircle, AlertTriangle, FileText, Save, X, Search, Eye, ShieldAlert } from 'lucide-svelte';
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
-  import { requestStatusLabels, rarityLevelLabels } from '$lib/enums';
-  import type { ExpertReview, RestorationRequest, User } from '$lib/types';
+  import { requestStatusLabels, rarityLevelLabels, restorationStepStatusLabels } from '$lib/enums';
+  import type { ExpertReview, RestorationRequest, User } from '$types';
   import { notifications } from '$stores/notification';
 
   let reviews: ExpertReview[] = [];
@@ -35,7 +35,8 @@
       requests = requestsRes.data;
       users = usersRes.data;
     } catch (e) {
-      handleApiError(e, '加载评审数据失败');
+      const { message } = handleApiError(e, '加载评审数据失败');
+      notifications.error(message);
     } finally {
       loading = false;
     }
@@ -59,11 +60,12 @@
         requestId: selectedRequest.id,
         ...reviewForm,
       });
-      notifications.add('评审意见已提交', 'success');
+      notifications.success('评审意见已提交');
       showReviewModal = false;
       await loadData();
     } catch (e) {
-      handleApiError(e, '提交评审意见失败');
+      const { message } = handleApiError(e, '提交评审意见失败');
+      notifications.error(message);
     }
   };
 
@@ -82,6 +84,11 @@
 
   const getReviewForRequest = (requestId: string) => {
     return reviews.find(r => r.requestId === requestId);
+  };
+
+  const pendingBatchCount = (request: RestorationRequest | null): number => {
+    if (!request?.steps) return 0;
+    return request.steps.filter(s => s.status === 'pending_batch').length;
   };
 
   const pendingRequests = requests.filter(r => r.status === 'review_pending');
@@ -342,6 +349,15 @@
           </Card>
         </div>
 
+        {#if pendingBatchCount(selectedRequest) > 0}
+          <div class="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+            <AlertTriangle class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div class="text-sm text-red-800">
+              存在 {pendingBatchCount(selectedRequest)} 道待补录材料批号的工序，专家评审前必须补齐。请通知修复师先补录材料批号后再提交评审。
+            </div>
+          </div>
+        {/if}
+
         <div class="p-4 bg-gray-50 rounded-lg">
           <p class="text-sm font-medium text-gray-700 mb-2">修复说明</p>
           <p class="text-gray-600">{selectedRequest.description || '无'}</p>
@@ -376,7 +392,7 @@
           <X class="w-4 h-4 mr-2" />
           取消
         </Button>
-        <Button variant="primary" on:click={submitReview}>
+        <Button variant="primary" on:click={submitReview} disabled={pendingBatchCount(selectedRequest) > 0}>
           <Save class="w-4 h-4 mr-2" />
           提交评审
         </Button>

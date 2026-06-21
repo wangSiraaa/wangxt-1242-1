@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Card, Badge, ProgressBar, Chip } from '@skeletonlabs/skeleton';
+  import { Card, Badge } from '@skeletonlabs/skeleton';
   import { Library, FileText, Wrench, Users, Clock, CheckCircle, AlertTriangle } from 'lucide-svelte';
   import { ancientBooksApi, restorationRequestsApi, expertReviewsApi, materialsApi } from '$lib/api';
   import { notifications } from '$stores/notification';
@@ -148,7 +148,12 @@
                 </div>
                 <div class="text-right">
                   <p class="font-bold text-yellow-700">{material.quantity} {material.unit}</p>
-                  <ProgressBar value={(material.quantity / 10) * 100} class="w-20 h-1.5" meter="bg-yellow-500" />
+                  <div class="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      class="h-full bg-yellow-500 rounded-full transition-all" 
+                      style="width: {Math.min((material.quantity / 10) * 100, 100)}%"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

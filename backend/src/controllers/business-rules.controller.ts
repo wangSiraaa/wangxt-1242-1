@@ -82,8 +82,8 @@ export class BusinessRulesController {
       {
         id: 'material_batch_required',
         name: '修复材料批号必填',
-        description: '修复师完成工序时，所使用的修复材料必须填写批号',
-        enforcement: '应用层 Service 验证',
+        description: '修复师提交工序时若漏填材料批号，可保存为待补录状态；专家评审前必须补齐批号',
+        enforcement: '应用层 Service 验证 + 评审前置校验',
       },
       {
         id: 'restoration_images_required',

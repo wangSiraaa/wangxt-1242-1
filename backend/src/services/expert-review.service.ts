@@ -72,7 +72,7 @@ export class ExpertReviewService {
     return this.dataSource.transaction(async (manager) => {
       const request = await manager.findOne(RestorationRequest, {
         where: { id: dto.requestId },
-        relations: ['book'],
+        relations: ['book', 'steps'],
       });
       
       if (!request) {
@@ -95,6 +95,11 @@ export class ExpertReviewService {
 
       if (request.status !== 'review_pending') {
         throw new BadRequestException(`当前申请状态为「${this.getRequestStatusName(request.status)}」，无法进行评审`);
+      }
+
+      const hasPendingBatchSteps = request.steps.some(s => s.status === 'pending_batch');
+      if (hasPendingBatchSteps) {
+        throw new BadRequestException('存在待补录材料批号的工序，请先补齐材料批号后再进行专家评审');
       }
 
       const review = manager.create(ExpertReview, {
@@ -148,6 +153,7 @@ export class ExpertReviewService {
       hasBeforeImage: boolean;
       hasAfterImage: boolean;
       allStepsCompleted: boolean;
+      hasPendingBatchSteps: boolean;
       isCorrectStatus: boolean;
       isPreciousBook: boolean;
     };
@@ -163,6 +169,7 @@ export class ExpertReviewService {
 
     const hasBeforeImage = request.images.some(img => img.imageType === 'before_restoration');
     const hasAfterImage = request.images.some(img => img.imageType === 'after_restoration');
+    const hasPendingBatchSteps = request.steps.some(s => s.status === 'pending_batch');
     const allStepsCompleted = request.steps.every(s => s.status === 'completed');
     const isCorrectStatus = request.status === 'review_pending';
     const isPreciousBook = this.businessRulesService.isPreciousBook(request.book.rarityLevel);
@@ -176,6 +183,9 @@ export class ExpertReviewService {
     } else if (!isCorrectStatus) {
       canReview = false;
       reason = `当前状态为「${this.getRequestStatusName(request.status)}」，不可评审`;
+    } else if (hasPendingBatchSteps) {
+      canReview = false;
+      reason = '存在待补录材料批号的工序，请先补齐材料批号后再进行专家评审';
     } else if (!allStepsCompleted) {
       canReview = false;
       reason = '还有修复工序未完成';
@@ -188,6 +198,7 @@ export class ExpertReviewService {
         hasBeforeImage,
         hasAfterImage,
         allStepsCompleted,
+        hasPendingBatchSteps,
         isCorrectStatus,
         isPreciousBook,
       },

@@ -70,10 +70,11 @@ export class BusinessRulesService {
     }
   }
 
-  async validateStepCompletion(step: RestorationStep): Promise<void> {
+  async validateStepCompletion(step: RestorationStep): Promise<boolean> {
     if (!step.materialBatch || step.materialBatch.trim() === '') {
-      throw new BadRequestException('材料批号不能为空，必须填写材料批号才能完成工序');
+      return false;
     }
+    return true;
   }
 
   async checkCanOpenForReading(requestId: string, bookId: string): Promise<boolean> {

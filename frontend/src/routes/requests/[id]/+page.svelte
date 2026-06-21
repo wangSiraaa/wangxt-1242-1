@@ -6,7 +6,7 @@
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
   import { rarityLevelLabels, requestStatusLabels, restorationStepLabels, restorationStepStatusLabels, imageTypeLabels } from '$lib/enums';
-  import type { RestorationRequest, AncientBook, BookImage, ExpertReview, User, Material } from '$lib/types';
+  import type { RestorationRequest, AncientBook, BookImage, ExpertReview, User, Material } from '$types';
   import { notifications } from '$stores/notification';
 
   let request: RestorationRequest | null = null;
@@ -32,6 +32,14 @@
     canOpenToPublic: false,
   };
 
+  let showSupplementModal = false;
+  let supplementTargetStep: any = null;
+  let supplementForm = {
+    materialBatch: '',
+    materialId: '',
+    notes: '',
+  };
+
   const loadData = async () => {
     const id = $page.params.id;
     loading = true;
@@ -50,7 +58,8 @@
       users = usersRes.data;
       materials = materialsRes.data;
     } catch (e) {
-      handleApiError(e, '加载修复申请详情失败');
+      const { message } = handleApiError(e, '加载修复申请详情失败');
+      notifications.error(message);
     } finally {
       loading = false;
     }
@@ -71,31 +80,34 @@
 
     try {
       await api.put(`/restoration-steps/${selectedStep.id}`, stepForm);
-      notifications.add('工序信息已更新', 'success');
+      notifications.success('工序信息已更新');
       showStepModal = false;
       await loadData();
     } catch (e) {
-      handleApiError(e, '保存工序信息失败');
+      const { message } = handleApiError(e, '保存工序信息失败');
+      notifications.error(message);
     }
   };
 
   const startStep = async (stepId: string) => {
     try {
-      await api.post(`/restoration-steps/${stepId}/start`);
-      notifications.add('工序已开始', 'success');
+      await api.put(`/restoration-steps/${stepId}/start`, {});
+      notifications.success('工序已开始');
       await loadData();
     } catch (e) {
-      handleApiError(e, '开始工序失败');
+      const { message } = handleApiError(e, '开始工序失败');
+      notifications.error(message);
     }
   };
 
   const completeStep = async (stepId: string) => {
     try {
-      await api.post(`/restoration-steps/${stepId}/complete`);
-      notifications.add('工序已完成', 'success');
+      await api.put(`/restoration-steps/${stepId}/complete`, {});
+      notifications.success('工序已完成');
       await loadData();
     } catch (e) {
-      handleApiError(e, '完成工序失败');
+      const { message } = handleApiError(e, '完成工序失败');
+      notifications.error(message);
     }
   };
 
@@ -104,10 +116,11 @@
 
     try {
       await api.post(`/restoration-requests/${request.id}/submit-review`);
-      notifications.add('已提交专家评审', 'success');
+      notifications.success('已提交专家评审');
       await loadData();
     } catch (e) {
-      handleApiError(e, '提交评审失败');
+      const { message } = handleApiError(e, '提交评审失败');
+      notifications.error(message);
     }
   };
 
@@ -128,11 +141,48 @@
         requestId: request.id,
         ...reviewForm,
       });
-      notifications.add('评审意见已提交', 'success');
+      notifications.success('评审意见已提交');
       showReviewModal = false;
       await loadData();
     } catch (e) {
-      handleApiError(e, '提交评审失败');
+      const { message } = handleApiError(e, '提交评审失败');
+      notifications.error(message);
+    }
+  };
+
+  const pendingBatchCount = (req: RestorationRequest | null) => {
+    if (!req || !req.steps) return 0;
+    return req.steps.filter(s => s.status === 'pending_batch').length;
+  };
+
+  const openSupplementModal = (step: any) => {
+    supplementTargetStep = step;
+    supplementForm = {
+      materialBatch: '',
+      materialId: step.materialId || '',
+      notes: step.notes || '',
+    };
+    showSupplementModal = true;
+  };
+
+  const saveSupplement = async () => {
+    if (!supplementTargetStep) return;
+    if (!supplementForm.materialBatch.trim()) {
+      notifications.error('材料批号不能为空');
+      return;
+    }
+    try {
+      await api.put(`/restoration-steps/${supplementTargetStep.id}/supplement-batch`, {
+        materialBatch: supplementForm.materialBatch.trim(),
+        materialId: supplementForm.materialId || undefined,
+        notes: supplementForm.notes || undefined,
+      });
+      notifications.success('材料批号已补录，工序已完成');
+      showSupplementModal = false;
+      await loadData();
+    } catch (e) {
+      const { message } = handleApiError(e, '补录材料批号失败');
+      notifications.error(message);
     }
   };
 
@@ -193,10 +243,17 @@
       {/if}
     </div>
     {#if request && request.status === 'steps_completed'}
-      <Button variant="primary" on:click={submitForReview}>
-        <Send class="w-4 h-4 mr-2" />
-        提交专家评审
-      </Button>
+      {#if pendingBatchCount(request) > 0}
+        <Button variant="warning" disabled title="存在待补录工序，请先补齐材料批号">
+          <AlertTriangle class="w-4 h-4 mr-2" />
+          待补录 {pendingBatchCount(request)} 项
+        </Button>
+      {:else}
+        <Button variant="primary" on:click={submitForReview}>
+          <Send class="w-4 h-4 mr-2" />
+          提交专家评审
+        </Button>
+      {/if}
     {/if}
     {#if request && request.status === 'review_pending'}
       <Button variant="primary" on:click={openReviewModal}>
@@ -290,11 +347,13 @@
               <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center {step.status === 'completed' ? 'bg-green-100' : step.status === 'in_progress' ? 'bg-amber-100' : 'bg-gray-100'}">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center {step.status === 'completed' ? 'bg-green-100' : step.status === 'in_progress' ? 'bg-amber-100' : step.status === 'pending_batch' ? 'bg-amber-100' : 'bg-gray-100'}">
                       {#if step.status === 'completed'}
                         <CheckCircle class="w-5 h-5 text-green-600" />
                       {:else if step.status === 'in_progress'}
                         <Clock class="w-5 h-5 text-amber-600" />
+                      {:else if step.status === 'pending_batch'}
+                        <AlertTriangle class="w-5 h-5 text-amber-500" />
                       {:else}
                         <Clock class="w-5 h-5 text-gray-400" />
                       {/if}
@@ -323,6 +382,12 @@
                         完成
                       </Button>
                     {/if}
+                    {#if step.status === 'pending_batch'}
+                      <Button size="sm" variant="warning" on:click={() => openSupplementModal(step)}>
+                        <AlertTriangle class="w-3.5 h-3.5 mr-1" />
+                        补录
+                      </Button>
+                    {/if}
                     <Button size="sm" variant="tertiary" on:click={() => openStepModal(step)}>
                       编辑
                     </Button>
@@ -337,6 +402,11 @@
                     <p class="text-gray-500">材料批号</p>
                     {#if step.materialBatch}
                       <p class="font-mono">{step.materialBatch}</p>
+                    {:else if step.status === 'pending_batch'}
+                      <p class="text-amber-600 flex items-center">
+                        <AlertTriangle class="w-4 h-4 mr-1" />
+                        待补录
+                      </p>
                     {:else}
                       <p class="text-red-500 flex items-center">
                         <AlertTriangle class="w-4 h-4 mr-1" />
@@ -452,11 +522,13 @@
             </div>
             {#each request.steps || [] as step}
               <div class="flex items-center gap-3">
-                <div class="w-6 h-6 rounded-full {step.status === 'completed' ? 'bg-green-100' : step.status === 'in_progress' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center">
+                <div class="w-6 h-6 rounded-full {step.status === 'completed' ? 'bg-green-100' : step.status === 'in_progress' ? 'bg-amber-100' : step.status === 'pending_batch' ? 'bg-amber-100' : 'bg-gray-100'} flex items-center justify-center">
                   {#if step.status === 'completed'}
                     <CheckCircle class="w-4 h-4 text-green-600" />
                   {:else if step.status === 'in_progress'}
                     <Clock class="w-4 h-4 text-amber-600" />
+                  {:else if step.status === 'pending_batch'}
+                    <AlertTriangle class="w-4 h-4 text-amber-500" />
                   {:else}
                     <Clock class="w-4 h-4 text-gray-400" />
                   {/if}
@@ -533,7 +605,10 @@
           </label>
           <Input bind:value={stepForm.materialBatch} placeholder="请输入材料批号" required />
           {#if !stepForm.materialBatch}
-            <p class="text-xs text-red-500 mt-1">材料批号缺失无法提交工序完成</p>
+            <p class="text-xs text-amber-600 mt-1 flex items-center">
+              <AlertTriangle class="w-3 h-3 mr-1" />
+              未填写批号将保存为「待补录」状态，专家评审前需补齐
+            </p>
           {/if}
         </div>
 
@@ -582,6 +657,18 @@
           </div>
         </div>
 
+        {#if pendingBatchCount(request) > 0}
+          <div class="p-4 bg-red-50 rounded-lg border border-red-200 flex items-start gap-3">
+            <AlertTriangle class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <div>
+              <p class="font-semibold text-red-700">存在待补录材料批号的工序</p>
+              <p class="text-sm text-red-600">
+                当前有 {pendingBatchCount(request)} 道工序未补齐材料批号，请先补齐批号后再进行专家评审
+              </p>
+            </div>
+          </div>
+        {/if}
+
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">评审决定</label>
           <Select bind:value={reviewForm.decision}>
@@ -613,9 +700,70 @@
           <X class="w-4 h-4 mr-2" />
           取消
         </Button>
-        <Button variant="primary" on:click={submitReview}>
+        <Button
+          variant="primary"
+          on:click={submitReview}
+          disabled={request ? pendingBatchCount(request) > 0 : false}
+        >
           <Save class="w-4 h-4 mr-2" />
           提交评审
+        </Button>
+      </div>
+    </div>
+  </ModalBody>
+</Modal>
+
+<Modal bind:open={showSupplementModal} maxWidth="md">
+  <ModalHeader>
+    <h3 class="text-xl font-bold">补录材料批号</h3>
+  </ModalHeader>
+  <ModalBody>
+    <div class="space-y-4">
+      {#if supplementTargetStep}
+        <div class="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
+          <AlertTriangle class="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p class="text-sm font-medium text-amber-800">
+              工序：{restorationStepLabels[supplementTargetStep.stepType]}
+            </p>
+            <p class="text-xs text-amber-700">
+              该工序已暂存为「待补录」状态，补齐材料批号后将转为已完成
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            材料批号
+            <span class="text-red-500">*</span>
+          </label>
+          <Input bind:value={supplementForm.materialBatch} placeholder="请输入材料批号" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">使用材料（可选）</label>
+          <Select bind:value={supplementForm.materialId}>
+            <SelectOption value="">请选择材料</SelectOption>
+            {#each materials as material}
+              <SelectOption value={material.id}>{material.name} (库存: {material.stock})</SelectOption>
+            {/each}
+          </Select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+          <Textarea bind:value={supplementForm.notes} placeholder="补充说明..." rows={3} />
+        </div>
+      {/if}
+
+      <div class="flex justify-end gap-3 pt-4 border-t">
+        <Button variant="tertiary" on:click={() => (showSupplementModal = false)}>
+          <X class="w-4 h-4 mr-2" />
+          取消
+        </Button>
+        <Button variant="warning" on:click={saveSupplement}>
+          <Save class="w-4 h-4 mr-2" />
+          确认补录
         </Button>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { RestorationStep, StepStatus, StepType } from '../entities/restoration-step.entity';
 import { RestorationRequest } from '../entities/restoration-request.entity';
 import { Material } from '../entities/material.entity';
-import { CreateRestorationStepDto, CompleteStepDto, UpdateRestorationStepDto } from '../dto/restoration-step.dto';
+import { CreateRestorationStepDto, CompleteStepDto, UpdateRestorationStepDto, SupplementBatchDto } from '../dto/restoration-step.dto';
 import { BusinessRulesService } from './business-rules.service';
 
 @Injectable()
@@ -89,9 +89,7 @@ export class RestorationStepService {
         throw new BadRequestException(`该工序当前状态为「${this.getStatusName(step.status)}」，无法完成`);
       }
 
-      if (!dto.materialBatch || dto.materialBatch.trim() === '') {
-        throw new BadRequestException('材料批号不能为空，必须填写材料批号才能完成工序');
-      }
+      const hasBatch = dto.materialBatch && dto.materialBatch.trim() !== '';
 
       if (dto.materialId) {
         await this.businessRulesService.validateMaterialBatchNumber(dto.materialId);
@@ -103,12 +101,18 @@ export class RestorationStepService {
         }
       }
 
-      step.status = 'completed';
       step.endTime = new Date();
       step.performedById = dto.performedById;
       step.materialId = dto.materialId || step.materialId;
-      step.materialBatch = dto.materialBatch;
       step.notes = dto.notes || step.notes;
+
+      if (hasBatch) {
+        step.status = 'completed';
+        step.materialBatch = dto.materialBatch;
+      } else {
+        step.status = 'pending_batch';
+        step.materialBatch = null;
+      }
 
       const completedStep = await manager.save(step);
 
@@ -133,6 +137,63 @@ export class RestorationStepService {
       }
 
       return completedStep;
+    });
+  }
+
+  async supplementBatch(id: string, dto: SupplementBatchDto): Promise<RestorationStep> {
+    return this.dataSource.transaction(async (manager) => {
+      const step = await manager.findOne(RestorationStep, {
+        where: { id },
+        relations: ['request'],
+      });
+
+      if (!step) {
+        throw new NotFoundException('工序不存在');
+      }
+
+      if (step.status !== 'pending_batch') {
+        throw new BadRequestException(
+          `该工序当前状态为「${this.getStatusName(step.status)}」，仅待补录工序可补录材料批号`,
+        );
+      }
+
+      if (!dto.materialBatch || dto.materialBatch.trim() === '') {
+        throw new BadRequestException('材料批号不能为空');
+      }
+
+      step.materialBatch = dto.materialBatch;
+      if (dto.materialId) {
+        await this.businessRulesService.validateMaterialBatchNumber(dto.materialId);
+        step.materialId = dto.materialId;
+      }
+      if (dto.notes) {
+        step.notes = dto.notes;
+      }
+      step.status = 'completed';
+
+      const updatedStep = await manager.save(step);
+
+      const allSteps = await manager.find(RestorationStep, {
+        where: { requestId: step.requestId },
+      });
+
+      const allCompleted = allSteps.every(s => s.status === 'completed');
+      if (allCompleted) {
+        const request = await manager.findOne(RestorationRequest, {
+          where: { id: step.requestId },
+          relations: ['book'],
+        });
+
+        if (request) {
+          const workflow = await this.businessRulesService.getRequiredWorkflow(request.bookId);
+          if (workflow.requiresExpertReview) {
+            request.status = 'review_pending';
+          }
+          await manager.save(request);
+        }
+      }
+
+      return updatedStep;
     });
   }
 
@@ -191,6 +252,7 @@ export class RestorationStepService {
       pending: '待开始',
       in_progress: '进行中',
       completed: '已完成',
+      pending_batch: '待补录',
     };
     return names[status] || status;
   }

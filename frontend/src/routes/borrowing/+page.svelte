@@ -5,7 +5,7 @@
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
   import { restrictionTypeLabels, restrictionStatusLabels, rarityLevelLabels } from '$lib/enums';
-  import type { BorrowingRestriction, AncientBook, BorrowingRecord } from '$lib/types';
+  import type { BorrowingRestriction, AncientBook, BorrowingRecord } from '$types';
   import { notifications } from '$stores/notification';
 
   let restrictions: BorrowingRestriction[] = [];

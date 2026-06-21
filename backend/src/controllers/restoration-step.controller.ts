@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { RestorationStepService } from '../services/restoration-step.service';
-import { CreateRestorationStepDto, UpdateRestorationStepDto, CompleteStepDto } from '../dto/restoration-step.dto';
+import { CreateRestorationStepDto, UpdateRestorationStepDto, CompleteStepDto, SupplementBatchDto } from '../dto/restoration-step.dto';
 import { StepType, StepStatus } from '../entities/restoration-step.entity';
 
 @ApiTags('修复工序')
@@ -44,6 +44,7 @@ export class RestorationStepController {
       { status: 'pending', name: '待执行' },
       { status: 'in_progress', name: '执行中' },
       { status: 'completed', name: '已完成' },
+      { status: 'pending_batch', name: '待补录' },
     ];
   }
 
@@ -73,12 +74,21 @@ export class RestorationStepController {
   }
 
   @Put(':id/complete')
-  @ApiOperation({ summary: '完成工序' })
+  @ApiOperation({ summary: '完成工序（材料批号缺失时保存为待补录状态）' })
   @ApiResponse({ status: 200, description: '完成成功' })
-  @ApiResponse({ status: 400, description: '材料批号缺失或参数错误' })
+  @ApiResponse({ status: 400, description: '参数错误或前道工序未完成' })
   @ApiResponse({ status: 404, description: '工序不存在' })
   async completeStep(@Param('id') id: string, @Body() dto: CompleteStepDto) {
     return this.stepService.completeStep(id, dto);
+  }
+
+  @Put(':id/supplement-batch')
+  @ApiOperation({ summary: '补录材料批号（待补录工序补齐批号后转为已完成）' })
+  @ApiResponse({ status: 200, description: '补录成功' })
+  @ApiResponse({ status: 400, description: '工序非待补录状态或材料批号为空' })
+  @ApiResponse({ status: 404, description: '工序不存在' })
+  async supplementBatch(@Param('id') id: string, @Body() dto: SupplementBatchDto) {
+    return this.stepService.supplementBatch(id, dto);
   }
 
   @Delete(':id')

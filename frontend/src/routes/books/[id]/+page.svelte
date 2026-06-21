@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { Card, Button, Badge, Modal, ModalBody, ModalHeader, Input, Select, SelectOption, Textarea, Tabs, Tab } from '@skeletonlabs/skeleton';
+  import { Card, Button, Badge, Modal, ModalBody, ModalHeader, Input, Select, SelectOption, Textarea } from '@skeletonlabs/skeleton';
   import { ArrowLeft, Edit2, Save, X, Image, FileText, History, BookOpen, ShieldAlert } from 'lucide-svelte';
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
   import { rarityLevelLabels, bookStatusLabels, restorationStepLabels, restorationStepStatusLabels, requestStatusLabels } from '$lib/enums';
-  import type { AncientBook, RestorationRequest, BookImage, BorrowingRestriction } from '$lib/types';
+  import type { AncientBook, RestorationRequest, BookImage, BorrowingRestriction } from '$types';
   import { notifications } from '$stores/notification';
 
   let book: AncientBook | null = null;

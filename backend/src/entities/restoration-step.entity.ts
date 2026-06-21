@@ -5,7 +5,7 @@ import { User } from './user.entity';
 import { Material } from './material.entity';
 
 export type StepType = 'deacidification' | 'paper_mending' | 'binding';
-export type StepStatus = 'pending' | 'in_progress' | 'completed';
+export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'pending_batch';
 
 @Entity('restoration_steps')
 @Unique(['requestId', 'stepType'])
@@ -28,10 +28,10 @@ export class RestorationStep {
 
   @ApiProperty({ 
     description: '工序状态', 
-    enum: ['pending', 'in_progress', 'completed'],
+    enum: ['pending', 'in_progress', 'completed', 'pending_batch'],
     default: 'pending'
   })
-  @Column({ type: 'enum', enum: ['pending', 'in_progress', 'completed'], default: 'pending' })
+  @Column({ type: 'enum', enum: ['pending', 'in_progress', 'completed', 'pending_batch'], default: 'pending' })
   status: StepStatus;
 
   @ApiProperty({ description: '执行人ID', required: false })
@@ -92,5 +92,13 @@ export class RestorationStep {
       return this.material.hasValidBatchNumber;
     }
     return true;
+  }
+
+  get isPendingBatch(): boolean {
+    return this.status === 'pending_batch';
+  }
+
+  get needsBatchSupplement(): boolean {
+    return !this.materialBatch || this.materialBatch.trim() === '';
   }
 }

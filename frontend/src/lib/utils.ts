@@ -70,17 +70,17 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function handleApiError(error: unknown): { message: string; status?: number } {
+export function handleApiError(error: unknown, defaultMessage = '请求失败，请稍后重试'): { message: string; status?: number } {
   if (axios.isAxiosError(error)) {
     const response = error.response;
     const message =
       response?.data?.message ||
       response?.data?.error ||
       error.message ||
-      '请求失败，请稍后重试';
+      defaultMessage;
     return { message, status: response?.status };
   }
-  return { message: '发生未知错误，请稍后重试' };
+  return { message: defaultMessage };
 }
 
 export function getFileSize(bytes: number): string {

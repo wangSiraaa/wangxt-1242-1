@@ -3,7 +3,7 @@ export type RarityLevel = 'common' | 'rare' | 'precious' | 'national_treasure';
 export type BorrowingStatus = 'available' | 'restricted' | 'under_restoration' | 'permanently_restricted';
 export type RequestStatus = 'draft' | 'submitted' | 'approved' | 'in_progress' | 'steps_completed' | 'review_pending' | 'review_approved' | 'review_rejected' | 'completed' | 'cancelled';
 export type StepType = 'deacidification' | 'paper_mending' | 'binding';
-export type StepStatus = 'pending' | 'in_progress' | 'completed';
+export type StepStatus = 'pending' | 'in_progress' | 'completed' | 'pending_batch';
 export type ReviewDecision = 'approved' | 'rejected' | 'needs_revision';
 export type ImageType = 'cover' | 'inside_page' | 'before_restoration' | 'after_restoration' | 'detail';
 export type RestrictionType = 'full' | 'reading_room_only' | 'supervised' | 'digital_only';
@@ -211,7 +211,13 @@ export interface UpdateRequestStatusDto {
 export interface CompleteStepDto {
   performedById: string;
   materialId?: string;
+  materialBatch?: string;
+  notes?: string;
+}
+
+export interface SupplementBatchDto {
   materialBatch: string;
+  materialId?: string;
   notes?: string;
 }
 

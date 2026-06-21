@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Card, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Modal, ModalBody, ModalHeader, Input, Select, SelectOption, Badge, FileUpload, FileUploadItem } from '@skeletonlabs/skeleton';
-  import { Image, Upload, Search, Trash2, Eye, Download, X, Save, AlertTriangle } from 'lucide-svelte';
+  import { Card, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Modal, ModalBody, ModalHeader, Input, Select, SelectOption, Badge } from '@skeletonlabs/skeleton';
+  import { Image, Upload, Search, Trash2, Eye, Download, X, Save, AlertTriangle, CheckCircle } from 'lucide-svelte';
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
   import { imageTypeLabels } from '$lib/enums';
-  import type { BookImage, AncientBook, RestorationRequest } from '$lib/types';
+  import type { BookImage, AncientBook, RestorationRequest } from '$types';
   import { notifications } from '$stores/notification';
 
   let images: BookImage[] = [];
@@ -29,14 +29,15 @@
     try {
       const [imagesRes, booksRes, requestsRes] = await Promise.all([
         api.get('/book-images'),
-        api.get('/ancient-books'),
+        api.get('/books'),
         api.get('/restoration-requests'),
       ]);
       images = imagesRes.data;
-      books = booksRes.data;
-      requests = requestsRes.data;
+      books = booksRes.data?.items || booksRes.data || [];
+      requests = requestsRes.data?.items || requestsRes.data || [];
     } catch (e) {
-      handleApiError(e, '加载图片数据失败');
+      const { message } = handleApiError(e, '加载图片数据失败');
+      notifications.error(message);
     } finally {
       loading = false;
     }
@@ -51,7 +52,7 @@
 
   const uploadImages = async () => {
     if (selectedFiles.length === 0) {
-      notifications.add('请选择要上传的图片', 'warning');
+      notifications.warning('请选择要上传的图片');
       return;
     }
 
@@ -71,12 +72,13 @@
         });
       }
 
-      notifications.add(`成功上传 ${selectedFiles.length} 张图片`, 'success');
+      notifications.success(`成功上传 ${selectedFiles.length} 张图片`);
       showUploadModal = false;
       selectedFiles = [];
       await loadData();
     } catch (e) {
-      handleApiError(e, '上传图片失败');
+      const { message } = handleApiError(e, '上传图片失败');
+      notifications.error(message);
     }
   };
 
@@ -85,10 +87,11 @@
 
     try {
       await api.delete(`/book-images/${image.id}`);
-      notifications.add('图片已删除', 'success');
+      notifications.success('图片已删除');
       await loadData();
     } catch (e) {
-      handleApiError(e, '删除图片失败');
+      const { message } = handleApiError(e, '删除图片失败');
+      notifications.error(message);
     }
   };
 

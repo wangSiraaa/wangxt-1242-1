@@ -5,9 +5,9 @@
   import { api } from '$lib/api';
   import { handleApiError } from '$lib/utils';
   import { roleLabels } from '$lib/enums';
-  import type { User } from '$lib/types';
+  import type { User } from '$types';
   import { notifications } from '$stores/notification';
-  import { userStore } from '$stores/user';
+  import { currentUser, isAdmin } from '$stores/user';
 
   let users: User[] = [];
   let loading = false;

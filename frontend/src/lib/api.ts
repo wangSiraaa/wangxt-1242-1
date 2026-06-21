@@ -13,6 +13,7 @@ import type {
   UpdateRestorationRequestDto,
   UpdateRequestStatusDto,
   CompleteStepDto,
+  SupplementBatchDto,
   CreateExpertReviewDto,
   CreateBookImageDto,
 } from '$types';
@@ -103,6 +104,9 @@ export const restorationStepsApi = {
 
   completeStep: (id: string, data: CompleteStepDto) =>
     api.put<RestorationStep>(`/restoration-steps/${id}/complete`, data),
+
+  supplementBatch: (id: string, data: SupplementBatchDto) =>
+    api.put<RestorationStep>(`/restoration-steps/${id}/supplement-batch`, data),
 
   remove: (id: string) => api.delete(`/restoration-steps/${id}`),
 };

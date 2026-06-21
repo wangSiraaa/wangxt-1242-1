@@ -23,10 +23,10 @@ export class CreateRestorationStepDto {
 export class UpdateRestorationStepDto {
   @ApiPropertyOptional({ 
     description: '工序状态', 
-    enum: ['pending', 'in_progress', 'completed']
+    enum: ['pending', 'in_progress', 'completed', 'pending_batch']
   })
   @IsOptional()
-  @IsEnum(['pending', 'in_progress', 'completed'])
+  @IsEnum(['pending', 'in_progress', 'completed', 'pending_batch'])
   status?: StepStatus;
 
   @ApiPropertyOptional({ description: '执行人ID' })
@@ -68,9 +68,26 @@ export class CompleteStepDto {
   @IsUUID()
   materialId?: string;
 
+  @ApiPropertyOptional({ description: '材料批号（缺失时工序保存为待补录状态）' })
+  @IsOptional()
+  @IsString()
+  materialBatch?: string;
+
+  @ApiPropertyOptional({ description: '备注' })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class SupplementBatchDto {
   @ApiProperty({ description: '材料批号' })
   @IsString()
   materialBatch: string;
+
+  @ApiPropertyOptional({ description: '使用材料ID' })
+  @IsOptional()
+  @IsUUID()
+  materialId?: string;
 
   @ApiPropertyOptional({ description: '备注' })
   @IsOptional()

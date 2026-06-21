@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Card, Button, Input, Select, Modal, Toast, toastStore } from '@skeletonlabs/skeleton';
+  import { Card, Button, Input, Select, Modal } from '@skeletonlabs/skeleton';
   import { Library, Plus, Search, Filter, Eye, Edit, Trash2 } from 'lucide-svelte';
   import { ancientBooksApi } from '$lib/api';
   import { notifications } from '$stores/notification';

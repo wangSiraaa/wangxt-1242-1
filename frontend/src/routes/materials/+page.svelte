@@ -5,7 +5,7 @@
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
   import { materialTypeLabels, materialStatusLabels } from '$lib/enums';
-  import type { Material } from '$lib/types';
+  import type { Material } from '$types';
   import { notifications } from '$stores/notification';
 
   let materials: Material[] = [];
@@ -38,7 +38,8 @@
       const res = await api.get('/materials');
       materials = res.data;
     } catch (e) {
-      handleApiError(e, '加载材料数据失败');
+      const { message } = handleApiError(e, '加载材料数据失败');
+      notifications.error(message);
     } finally {
       loading = false;
     }
@@ -82,11 +83,12 @@
   const createMaterial = async () => {
     try {
       await api.post('/materials', createForm);
-      notifications.add('材料创建成功', 'success');
+      notifications.success('材料创建成功');
       showCreateModal = false;
       await loadData();
     } catch (e) {
-      handleApiError(e, '创建材料失败');
+      const { message } = handleApiError(e, '创建材料失败');
+      notifications.error(message);
     }
   };
 
@@ -95,11 +97,12 @@
 
     try {
       await api.put(`/materials/${selectedMaterial.id}`, editForm);
-      notifications.add('材料更新成功', 'success');
+      notifications.success('材料更新成功');
       showEditModal = false;
       await loadData();
     } catch (e) {
-      handleApiError(e, '更新材料失败');
+      const { message } = handleApiError(e, '更新材料失败');
+      notifications.error(message);
     }
   };
 
@@ -108,10 +111,11 @@
 
     try {
       await api.delete(`/materials/${material.id}`);
-      notifications.add('材料已删除', 'success');
+      notifications.success('材料已删除');
       await loadData();
     } catch (e) {
-      handleApiError(e, '删除材料失败');
+      const { message } = handleApiError(e, '删除材料失败');
+      notifications.error(message);
     }
   };
 

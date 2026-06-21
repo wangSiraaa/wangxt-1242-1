@@ -5,7 +5,7 @@
   import { api } from '$lib/api';
   import { handleApiError, formatDate } from '$lib/utils';
   import { restorationStepLabels, restorationStepStatusLabels } from '$lib/enums';
-  import type { RestorationStep, RestorationRequest, Material } from '$lib/types';
+  import type { RestorationStep, RestorationRequest, Material } from '$types';
   import { notifications } from '$stores/notification';
 
   let steps: RestorationStep[] = [];
@@ -37,7 +37,8 @@
       requests = requestsRes.data;
       materials = materialsRes.data;
     } catch (e) {
-      handleApiError(e, '加载工序数据失败');
+      const { message } = handleApiError(e, '加载工序数据失败');
+      notifications.error(message);
     } finally {
       loading = false;
     }
@@ -60,31 +61,72 @@
     
     try {
       await api.put(`/restoration-steps/${selectedStep.id}`, editForm);
-      notifications.add('工序信息已更新', 'success');
+      notifications.success('工序信息已更新');
       showEditModal = false;
       await loadData();
     } catch (e) {
-      handleApiError(e, '保存工序信息失败');
+      const { message } = handleApiError(e, '保存工序信息失败');
+      notifications.error(message);
     }
   };
 
   const startStep = async (step: RestorationStep) => {
     try {
-      await api.post(`/restoration-steps/${step.id}/start`);
-      notifications.add('工序已开始', 'success');
+      await api.put(`/restoration-steps/${step.id}/start`, {});
+      notifications.success('工序已开始');
       await loadData();
     } catch (e) {
-      handleApiError(e, '开始工序失败');
+      const { message } = handleApiError(e, '开始工序失败');
+      notifications.error(message);
     }
   };
 
   const completeStep = async (step: RestorationStep) => {
     try {
-      await api.post(`/restoration-steps/${step.id}/complete`);
-      notifications.add('工序已完成', 'success');
+      await api.put(`/restoration-steps/${step.id}/complete`, {});
+      notifications.success('工序已完成');
       await loadData();
     } catch (e) {
-      handleApiError(e, '完成工序失败');
+      const { message } = handleApiError(e, '完成工序失败');
+      notifications.error(message);
+    }
+  };
+
+  let showSupplementModal = false;
+  let supplementForm = {
+    materialBatch: '',
+    materialId: '',
+    notes: '',
+  };
+
+  const openSupplementModal = (step: RestorationStep) => {
+    selectedStep = step;
+    supplementForm = {
+      materialBatch: '',
+      materialId: step.materialId || '',
+      notes: step.notes || '',
+    };
+    showSupplementModal = true;
+  };
+
+  const saveSupplement = async () => {
+    if (!selectedStep) return;
+    if (!supplementForm.materialBatch.trim()) {
+      notifications.error('材料批号不能为空');
+      return;
+    }
+    try {
+      await api.put(`/restoration-steps/${selectedStep.id}/supplement-batch`, {
+        materialBatch: supplementForm.materialBatch,
+        materialId: supplementForm.materialId || undefined,
+        notes: supplementForm.notes || undefined,
+      });
+      notifications.success('材料批号已补录，工序已转为已完成');
+      showSupplementModal = false;
+      await loadData();
+    } catch (e) {
+      const { message } = handleApiError(e, '补录材料批号失败');
+      notifications.error(message);
     }
   };
 
@@ -132,6 +174,7 @@
       <SelectOption value="pending">待处理</SelectOption>
       <SelectOption value="in_progress">进行中</SelectOption>
       <SelectOption value="completed">已完成</SelectOption>
+      <SelectOption value="pending_batch">待补录</SelectOption>
     </Select>
   </div>
 
@@ -191,6 +234,12 @@
                       完成
                     </Button>
                   {/if}
+                  {#if step.status === 'pending_batch'}
+                    <Button size="sm" variant="warning" on:click={() => openSupplementModal(step)}>
+                      <AlertTriangle class="w-4 h-4 mr-1" />
+                      补录
+                    </Button>
+                  {/if}
                   <Button size="sm" variant="tertiary" on:click={() => openEditModal(step)}>
                     编辑
                   </Button>
@@ -244,7 +293,7 @@
           </label>
           <Input bind:value={editForm.materialBatch} placeholder="请输入材料批号" required />
           {#if !editForm.materialBatch}
-            <p class="text-xs text-red-500 mt-1">材料批号缺失无法提交工序完成</p>
+            <p class="text-xs text-amber-600 mt-1">未填写批号将保存为「待补录」状态，专家评审前需补齐</p>
           {/if}
         </div>
 
@@ -273,6 +322,71 @@
         <Button variant="primary" on:click={saveStep}>
           <Save class="w-4 h-4 mr-2" />
           保存
+        </Button>
+      </div>
+    </div>
+  </ModalBody>
+</Modal>
+
+<Modal bind:open={showSupplementModal} maxWidth="md">
+  <ModalHeader>
+    <h3 class="text-xl font-bold">补录材料批号</h3>
+  </ModalHeader>
+  <ModalBody>
+    <div class="space-y-4">
+      {#if selectedStep}
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div class="text-sm text-amber-800">
+            该工序当前为「待补录」状态，补齐材料批号后将转为「已完成」。专家评审前所有工序必须补齐批号。
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">工序类型</label>
+            <Input value={restorationStepLabels[selectedStep.stepType]} disabled />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">当前状态</label>
+            <Badge variant={restorationStepStatusLabels[selectedStep.status].variant} class="inline-block mt-2">
+              {restorationStepStatusLabels[selectedStep.status].name}
+            </Badge>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">使用材料</label>
+          <Select bind:value={supplementForm.materialId}>
+            <SelectOption value="">请选择材料</SelectOption>
+            {#each materials as material}
+              <SelectOption value={material.id}>{material.name} (库存: {material.stock})</SelectOption>
+            {/each}
+          </Select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            材料批号
+            <span class="text-red-500">*</span>
+          </label>
+          <Input bind:value={supplementForm.materialBatch} placeholder="请输入材料批号" required />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+          <Textarea bind:value={supplementForm.notes} placeholder="补充说明..." rows={3} />
+        </div>
+      {/if}
+
+      <div class="flex justify-end gap-3 pt-4 border-t">
+        <Button variant="tertiary" on:click={() => (showSupplementModal = false)}>
+          <X class="w-4 h-4 mr-2" />
+          取消
+        </Button>
+        <Button variant="primary" on:click={saveSupplement}>
+          <Save class="w-4 h-4 mr-2" />
+          确认补录
         </Button>
       </div>
     </div>

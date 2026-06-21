@@ -5,7 +5,7 @@ CREATE TYPE user_role AS ENUM ('librarian', 'restorer', 'expert', 'admin');
 CREATE TYPE rarity_level AS ENUM ('common', 'rare', 'precious', 'national_treasure');
 CREATE TYPE request_status AS ENUM ('draft', 'submitted', 'approved', 'in_progress', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled', 'steps_completed');
 CREATE TYPE step_type AS ENUM ('deacidification', 'paper_mending', 'binding');
-CREATE TYPE step_status AS ENUM ('pending', 'in_progress', 'completed');
+CREATE TYPE step_status AS ENUM ('pending', 'in_progress', 'completed', 'pending_batch');
 CREATE TYPE review_decision AS ENUM ('approved', 'rejected', 'needs_revision');
 CREATE TYPE image_type AS ENUM ('cover', 'inside_page', 'before_restoration', 'after_restoration', 'detail');
 CREATE TYPE material_type AS ENUM ('paper', 'adhesive', 'thread', 'consumable', 'tool');
@@ -243,7 +243,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER check_and_update_book_status BEFORE UPDATE ON restoration_requests
     FOR EACH ROW EXECUTE FUNCTION update_book_status_on_completion();
 
--- 触发函数：工序完成时检查材料批号
+-- 触发函数：工序完成时检查材料批号（待补录状态 pending_batch 不触发此校验，专家评审前由应用层强制补齐）
 CREATE OR REPLACE FUNCTION check_material_batch_on_step_complete()
 RETURNS TRIGGER AS $$
 BEGIN
