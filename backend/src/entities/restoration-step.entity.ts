@@ -42,6 +42,10 @@ export class RestorationStep {
   @Column({ name: 'material_id', type: 'uuid', nullable: true })
   materialId: string;
 
+  @ApiProperty({ description: '材料批号', required: false })
+  @Column({ name: 'material_batch', type: 'varchar', length: 100, nullable: true })
+  materialBatch: string;
+
   @ApiProperty({ description: '开始时间', required: false })
   @Column({ name: 'start_time', type: 'timestamp', nullable: true })
   startTime: Date;

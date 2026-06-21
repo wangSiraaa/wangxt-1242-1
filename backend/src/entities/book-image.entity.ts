@@ -4,6 +4,8 @@ import { AncientBook } from './ancient-book.entity';
 import { RestorationRequest } from './restoration-request.entity';
 import { User } from './user.entity';
 
+export type ImageType = 'cover' | 'inside_page' | 'before_restoration' | 'after_restoration' | 'detail';
+
 @Entity('book_images')
 export class BookImage {
   @ApiProperty({ description: '图片ID' })
@@ -18,13 +20,17 @@ export class BookImage {
   @Column({ name: 'request_id', type: 'uuid', nullable: true })
   requestId: string;
 
-  @ApiProperty({ description: '图片类型', maxLength: 50 })
-  @Column({ name: 'image_type', type: 'varchar', length: 50 })
-  imageType: string;
+  @ApiProperty({ description: '图片类型', enum: ['cover', 'inside_page', 'before_restoration', 'after_restoration', 'detail'] })
+  @Column({ name: 'image_type', type: 'enum', enum: ['cover', 'inside_page', 'before_restoration', 'after_restoration', 'detail'] })
+  imageType: ImageType;
 
   @ApiProperty({ description: '图片URL', maxLength: 500 })
   @Column({ name: 'image_url', type: 'varchar', length: 500 })
   imageUrl: string;
+
+  @ApiProperty({ description: '文件路径', maxLength: 500, required: false })
+  @Column({ name: 'file_path', type: 'varchar', length: 500, nullable: true })
+  filePath: string;
 
   @ApiProperty({ description: '缩略图URL', maxLength: 500, required: false })
   @Column({ name: 'thumbnail_url', type: 'varchar', length: 500, nullable: true })
@@ -49,6 +55,10 @@ export class BookImage {
   @ApiProperty({ description: '文件格式', maxLength: 20, required: false })
   @Column({ name: 'file_format', type: 'varchar', length: 20, nullable: true })
   fileFormat: string;
+
+  @ApiProperty({ description: '上传时间' })
+  @CreateDateColumn({ name: 'uploaded_at' })
+  uploadedAt: Date;
 
   @ApiProperty({ description: '创建时间' })
   @CreateDateColumn({ name: 'created_at' })

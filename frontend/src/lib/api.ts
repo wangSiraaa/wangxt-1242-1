@@ -24,6 +24,8 @@ const api = axios.create({
   },
 });
 
+export { api };
+
 export const ancientBooksApi = {
   findAll: (
     page = 1,

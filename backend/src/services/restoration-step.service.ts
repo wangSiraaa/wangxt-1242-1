@@ -4,7 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { RestorationStep, StepStatus, StepType } from '../entities/restoration-step.entity';
 import { RestorationRequest } from '../entities/restoration-request.entity';
 import { Material } from '../entities/material.entity';
-import { CompleteStepDto, UpdateRestorationStepDto } from '../dto/restoration-step.dto';
+import { CreateRestorationStepDto, CompleteStepDto, UpdateRestorationStepDto } from '../dto/restoration-step.dto';
 import { BusinessRulesService } from './business-rules.service';
 
 @Injectable()
@@ -89,6 +89,10 @@ export class RestorationStepService {
         throw new BadRequestException(`该工序当前状态为「${this.getStatusName(step.status)}」，无法完成`);
       }
 
+      if (!dto.materialBatch || dto.materialBatch.trim() === '') {
+        throw new BadRequestException('材料批号不能为空，必须填写材料批号才能完成工序');
+      }
+
       if (dto.materialId) {
         await this.businessRulesService.validateMaterialBatchNumber(dto.materialId);
         
@@ -103,6 +107,7 @@ export class RestorationStepService {
       step.endTime = new Date();
       step.performedById = dto.performedById;
       step.materialId = dto.materialId || step.materialId;
+      step.materialBatch = dto.materialBatch;
       step.notes = dto.notes || step.notes;
 
       const completedStep = await manager.save(step);
@@ -146,11 +151,38 @@ export class RestorationStepService {
     return this.stepRepository.save(step);
   }
 
-  async getStepTypes(): Promise<{ type: StepType; name: string; description: string }[]> {
+  async create(dto: CreateRestorationStepDto): Promise<RestorationStep> {
+    const existing = await this.stepRepository.findOne({
+      where: { requestId: dto.requestId, stepType: dto.stepType as StepType },
+    });
+    
+    if (existing) {
+      throw new BadRequestException('该工序已存在');
+    }
+
+    const step = this.stepRepository.create({
+      ...dto,
+      stepType: dto.stepType as StepType,
+    });
+    
+    return this.stepRepository.save(step);
+  }
+
+  async remove(id: string): Promise<void> {
+    const step = await this.findOne(id);
+    
+    if (step.status !== 'pending') {
+      throw new BadRequestException('只能删除待执行状态的工序');
+    }
+
+    await this.stepRepository.delete(id);
+  }
+
+  async getStepTypes(): Promise<{ type: StepType; name: string; order: number; description: string }[]> {
     return [
-      { type: 'deacidification', name: '脱酸', description: '使用脱酸剂处理纸张，延长保存寿命' },
-      { type: 'paper_mending', name: '补纸', description: '使用宣纸修补破损页面' },
-      { type: 'binding', name: '装帧', description: '重新装订书籍，恢复完整形态' },
+      { type: 'deacidification', name: '脱酸', order: 1, description: '使用脱酸剂处理纸张，延长保存寿命' },
+      { type: 'paper_mending', name: '补纸', order: 2, description: '使用宣纸修补破损页面' },
+      { type: 'binding', name: '装帧', order: 3, description: '重新装订书籍，恢复完整形态' },
     ];
   }
 

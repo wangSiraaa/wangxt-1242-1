@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { BookImage } from '../entities/book-image.entity';
+import { BookImage, ImageType } from '../entities/book-image.entity';
 import { RestorationRequest } from '../entities/restoration-request.entity';
 import { CreateBookImageDto, UpdateBookImageDto } from '../dto/book-image.dto';
 
@@ -61,6 +61,7 @@ export class BookImageService {
 
       const image = manager.create(BookImage, {
         ...dto,
+        imageType: dto.imageType as ImageType,
         takenAt: dto.takenAt || new Date(),
       });
 
@@ -82,6 +83,7 @@ export class BookImageService {
 
         const image = manager.create(BookImage, {
           ...dto,
+          imageType: dto.imageType as ImageType,
           takenAt: dto.takenAt || new Date(),
         });
         

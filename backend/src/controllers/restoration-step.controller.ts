@@ -68,8 +68,8 @@ export class RestorationStepController {
   @ApiResponse({ status: 200, description: '开始成功' })
   @ApiResponse({ status: 400, description: '前一道工序未完成' })
   @ApiResponse({ status: 404, description: '工序不存在' })
-  async startStep(@Param('id') id: string, @Body('restorerId') restorerId: string) {
-    return this.stepService.startStep(id, restorerId);
+  async startStep(@Param('id') id: string, @Body('performerId') performerId: string) {
+    return this.stepService.startStep(id, performerId);
   }
 
   @Put(':id/complete')

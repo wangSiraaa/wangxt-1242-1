@@ -71,8 +71,8 @@ export class BusinessRulesService {
   }
 
   async validateStepCompletion(step: RestorationStep): Promise<void> {
-    if (step.materialId) {
-      await this.validateMaterialBatchNumber(step.materialId);
+    if (!step.materialBatch || step.materialBatch.trim() === '') {
+      throw new BadRequestException('材料批号不能为空，必须填写材料批号才能完成工序');
     }
   }
 

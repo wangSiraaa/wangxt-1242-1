@@ -6,7 +6,7 @@ import { RestorationStep } from './restoration-step.entity';
 import { BookImage } from './book-image.entity';
 import { ExpertReview } from './expert-review.entity';
 
-export type RequestStatus = 'draft' | 'submitted' | 'approved' | 'in_progress' | 'review_pending' | 'review_approved' | 'review_rejected' | 'completed' | 'cancelled';
+export type RequestStatus = 'draft' | 'submitted' | 'approved' | 'in_progress' | 'steps_completed' | 'review_pending' | 'review_approved' | 'review_rejected' | 'completed' | 'cancelled';
 
 @Entity('restoration_requests')
 export class RestorationRequest {
@@ -36,10 +36,10 @@ export class RestorationRequest {
 
   @ApiProperty({ 
     description: '申请状态', 
-    enum: ['draft', 'submitted', 'approved', 'in_progress', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled'],
+    enum: ['draft', 'submitted', 'approved', 'in_progress', 'steps_completed', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled'],
     default: 'draft'
   })
-  @Column({ type: 'enum', enum: ['draft', 'submitted', 'approved', 'in_progress', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled'], default: 'draft' })
+  @Column({ type: 'enum', enum: ['draft', 'submitted', 'approved', 'in_progress', 'steps_completed', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled'], default: 'draft' })
   status: RequestStatus;
 
   @ApiProperty({ description: '提交时间', required: false })

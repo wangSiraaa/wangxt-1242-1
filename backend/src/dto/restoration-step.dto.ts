@@ -39,14 +39,17 @@ export class UpdateRestorationStepDto {
   @IsUUID()
   materialId?: string;
 
+  @ApiPropertyOptional({ description: '材料批号' })
+  @IsOptional()
+  @IsString()
+  materialBatch?: string;
+
   @ApiPropertyOptional({ description: '开始时间' })
   @IsOptional()
-  @IsDate()
   startTime?: Date;
 
   @ApiPropertyOptional({ description: '结束时间' })
   @IsOptional()
-  @IsDate()
   endTime?: Date;
 
   @ApiPropertyOptional({ description: '备注' })
@@ -64,6 +67,10 @@ export class CompleteStepDto {
   @IsOptional()
   @IsUUID()
   materialId?: string;
+
+  @ApiProperty({ description: '材料批号' })
+  @IsString()
+  materialBatch: string;
 
   @ApiPropertyOptional({ description: '备注' })
   @IsOptional()

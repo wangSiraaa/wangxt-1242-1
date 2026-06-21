@@ -35,6 +35,7 @@ export const requestStatusLabels: Record<
   submitted: { name: '已提交', color: 'text-blue-600', bgColor: 'bg-blue-50' },
   approved: { name: '已批准', color: 'text-green-600', bgColor: 'bg-green-50' },
   in_progress: { name: '修复中', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  steps_completed: { name: '工序完成', color: 'text-teal-600', bgColor: 'bg-teal-50' },
   review_pending: { name: '待评审', color: 'text-orange-600', bgColor: 'bg-orange-50' },
   review_approved: { name: '评审通过', color: 'text-green-600', bgColor: 'bg-green-50' },
   review_rejected: { name: '评审驳回', color: 'text-red-600', bgColor: 'bg-red-50' },

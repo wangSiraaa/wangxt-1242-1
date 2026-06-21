@@ -50,9 +50,9 @@ export class UpdateRestorationRequestDto {
 export class UpdateRequestStatusDto {
   @ApiProperty({ 
     description: '新状态', 
-    enum: ['draft', 'submitted', 'approved', 'in_progress', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled']
+    enum: ['draft', 'submitted', 'approved', 'in_progress', 'steps_completed', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled']
   })
-  @IsEnum(['draft', 'submitted', 'approved', 'in_progress', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled'])
+  @IsEnum(['draft', 'submitted', 'approved', 'in_progress', 'steps_completed', 'review_pending', 'review_approved', 'review_rejected', 'completed', 'cancelled'])
   status: RequestStatus;
 
   @ApiPropertyOptional({ description: '操作人ID（审批时需要）' })

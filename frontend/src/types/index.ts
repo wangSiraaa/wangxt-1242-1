@@ -1,11 +1,12 @@
 export type UserRole = 'librarian' | 'restorer' | 'expert' | 'admin';
 export type RarityLevel = 'common' | 'rare' | 'precious' | 'national_treasure';
 export type BorrowingStatus = 'available' | 'restricted' | 'under_restoration' | 'permanently_restricted';
-export type RequestStatus = 'draft' | 'submitted' | 'approved' | 'in_progress' | 'review_pending' | 'review_approved' | 'review_rejected' | 'completed' | 'cancelled';
+export type RequestStatus = 'draft' | 'submitted' | 'approved' | 'in_progress' | 'steps_completed' | 'review_pending' | 'review_approved' | 'review_rejected' | 'completed' | 'cancelled';
 export type StepType = 'deacidification' | 'paper_mending' | 'binding';
 export type StepStatus = 'pending' | 'in_progress' | 'completed';
 export type ReviewDecision = 'approved' | 'rejected' | 'needs_revision';
-export type ImageType = 'before_restoration' | 'after_restoration' | 'during_restoration' | 'detail' | 'cover';
+export type ImageType = 'cover' | 'inside_page' | 'before_restoration' | 'after_restoration' | 'detail';
+export type RestrictionType = 'full' | 'reading_room_only' | 'supervised' | 'digital_only';
 
 export interface User {
   id: string;
@@ -92,16 +93,14 @@ export interface RestorationStep {
   stepType: StepType;
   stepOrder: number;
   status: StepStatus;
-  restorerId?: string;
-  restorer?: User;
+  performedById?: string;
+  performedBy?: User;
   materialId?: string;
   material?: Material;
-  materialBatchNumber?: string;
-  description?: string;
+  materialBatch?: string;
+  startTime?: Date;
+  endTime?: Date;
   notes?: string;
-  startedAt?: Date;
-  completedAt?: Date;
-  durationMinutes?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -127,13 +126,15 @@ export interface BookImage {
   request?: RestorationRequest;
   imageType: ImageType;
   imageUrl: string;
+  filePath?: string;
   thumbnailUrl?: string;
-  caption?: string;
-  takenAt: Date;
+  description?: string;
+  takenAt?: Date;
   takenById?: string;
   takenBy?: User;
-  size?: number;
-  mimeType?: string;
+  fileSize?: number;
+  fileFormat?: string;
+  uploadedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -142,12 +143,15 @@ export interface BorrowingRestriction {
   id: string;
   bookId: string;
   book?: AncientBook;
-  reason: string;
-  restrictedBy: string;
-  restrictedByUser?: User;
-  startDate: Date;
-  endDate?: Date;
-  isActive: boolean;
+  restrictionType: RestrictionType;
+  reason?: string;
+  effectiveDate: Date;
+  expiryDate?: Date;
+  imposedById?: string;
+  imposedBy?: User;
+  requireExpertReview?: boolean;
+  status?: string;
+  isActive?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -183,6 +187,53 @@ export interface PaginationResult<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+export interface CreateRestorationRequestDto {
+  bookId: string;
+  requestedById: string;
+  requestReason: string;
+  urgencyLevel?: number;
+  estimatedCompletionDate?: Date;
+}
+
+export interface UpdateRestorationRequestDto {
+  requestReason?: string;
+  urgencyLevel?: number;
+}
+
+export interface UpdateRequestStatusDto {
+  status: string;
+  approvedBy?: string;
+  notes?: string;
+}
+
+export interface CompleteStepDto {
+  performedById: string;
+  materialId?: string;
+  materialBatch: string;
+  notes?: string;
+}
+
+export interface CreateExpertReviewDto {
+  requestId: string;
+  expertId: string;
+  decision: ReviewDecision;
+  comments: string;
+  canOpenForReading?: boolean;
+}
+
+export interface CreateBookImageDto {
+  bookId: string;
+  requestId?: string;
+  imageType: ImageType;
+  imageUrl: string;
+  filePath?: string;
+  description?: string;
+  takenAt?: Date;
+  takenById?: string;
+  fileSize?: number;
+  fileFormat?: string;
 }
 
 export interface ApiResponse<T> {

@@ -20,7 +20,7 @@ export class ExpertReviewController {
     @Query('expertId') expertId?: string,
     @Query('decision') decision?: ReviewDecision,
   ) {
-    return this.reviewService.findAll(requestId, expertId, decision);
+    return this.reviewService.findAll(1, 100, requestId, expertId, decision);
   }
 
   @Get('pending')

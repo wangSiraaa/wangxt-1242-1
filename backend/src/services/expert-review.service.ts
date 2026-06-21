@@ -121,6 +121,11 @@ export class ExpertReviewService {
     return this.reviewRepository.save(review);
   }
 
+  async remove(id: string): Promise<void> {
+    await this.findOne(id);
+    await this.reviewRepository.delete(id);
+  }
+
   async getPendingReviews(expertId: string): Promise<RestorationRequest[]> {
     const requests = await this.requestRepository.find({
       where: { status: 'review_pending' },
@@ -195,6 +200,7 @@ export class ExpertReviewService {
       submitted: '已提交',
       approved: '已批准',
       in_progress: '修复中',
+      steps_completed: '工序完成',
       review_pending: '待评审',
       review_approved: '评审通过',
       review_rejected: '评审驳回',

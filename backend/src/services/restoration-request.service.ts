@@ -4,7 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { RestorationRequest, RequestStatus } from '../entities/restoration-request.entity';
 import { RestorationStep, StepType } from '../entities/restoration-step.entity';
-import { AncientBook } from '../entities/ancient-book.entity';
+import { AncientBook, BorrowingStatus } from '../entities/ancient-book.entity';
 import { CreateRestorationRequestDto, UpdateRestorationRequestDto, UpdateRequestStatusDto } from '../dto/restoration-request.dto';
 import { BusinessRulesService } from './business-rules.service';
 
@@ -138,18 +138,10 @@ export class RestorationRequestService {
         }
 
         const canOpen = await this.businessRulesService.checkCanOpenForReading(request.id, request.bookId);
-        const book = await manager.findOne(AncientBook, { where: { id: request.bookId } });
-        if (book) {
-          book.currentStatus = canOpen ? 'available' : 'restricted';
-          await manager.save(book);
-        }
+        await this.updateBookStatus(manager, request.bookId, canOpen ? 'available' : 'restricted');
       }
       if (dto.status === 'in_progress') {
-        const book = await manager.findOne(AncientBook, { where: { id: request.bookId } });
-        if (book) {
-          book.currentStatus = 'under_restoration';
-          await manager.save(book);
-        }
+        await this.updateBookStatus(manager, request.bookId, 'under_restoration');
       }
 
       request.status = dto.status;
@@ -228,7 +220,8 @@ export class RestorationRequestService {
       draft: ['submitted', 'cancelled'],
       submitted: ['approved', 'cancelled', 'draft'],
       approved: ['in_progress', 'cancelled'],
-      in_progress: ['review_pending', 'completed'],
+      in_progress: ['steps_completed', 'review_pending', 'completed'],
+      steps_completed: ['review_pending', 'completed'],
       review_pending: ['review_approved', 'review_rejected'],
       review_approved: ['completed'],
       review_rejected: ['in_progress', 'cancelled'],
@@ -256,6 +249,7 @@ export class RestorationRequestService {
       submitted: '已提交',
       approved: '已批准',
       in_progress: '修复中',
+      steps_completed: '工序完成',
       review_pending: '待评审',
       review_approved: '评审通过',
       review_rejected: '评审驳回',
@@ -263,5 +257,18 @@ export class RestorationRequestService {
       cancelled: '已取消',
     };
     return names[status] || status;
+  }
+
+  private async updateBookStatus(
+    manager: DataSource['manager'],
+    bookId: string,
+    status: BorrowingStatus,
+  ): Promise<void> {
+    await manager
+      .createQueryBuilder()
+      .update(AncientBook)
+      .set({ currentStatus: status })
+      .where('id = :id', { id: bookId })
+      .execute();
   }
 }

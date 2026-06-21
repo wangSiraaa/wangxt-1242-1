@@ -1,11 +1,15 @@
-import { Controller, Get, Param, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Param, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { BusinessRulesService } from '../services/business-rules.service';
+import { RestorationRequestService } from '../services/restoration-request.service';
 
 @ApiTags('业务规则')
 @Controller('api/business-rules')
 export class BusinessRulesController {
-  constructor(private readonly businessRulesService: BusinessRulesService) {}
+  constructor(
+    private readonly businessRulesService: BusinessRulesService,
+    private readonly requestService: RestorationRequestService,
+  ) {}
 
   @Get('validate/precious-review/:requestId')
   @ApiOperation({ summary: '验证珍贵古籍评审规则' })
@@ -13,13 +17,7 @@ export class BusinessRulesController {
   @ApiResponse({ status: 403, description: '验证失败' })
   async validatePreciousBookReview(@Param('requestId') requestId: string) {
     try {
-      const request = await this.businessRulesService.requestRepository.findOne({
-        where: { id: requestId },
-        relations: ['book'],
-      });
-      if (!request) {
-        throw new HttpException('修复申请不存在', HttpStatus.NOT_FOUND);
-      }
+      const request = await this.requestService.findOne(requestId);
       await this.businessRulesService.validatePreciousBookReview(requestId, request.bookId);
       return { valid: true, message: '珍贵古籍评审规则验证通过' };
     } catch (error) {
@@ -46,7 +44,8 @@ export class BusinessRulesController {
   @ApiResponse({ status: 400, description: '验证失败' })
   async validateRestorationImages(@Param('requestId') requestId: string) {
     try {
-      await this.businessRulesService.validateRestorationImages(requestId);
+      const request = await this.requestService.findOne(requestId);
+      await this.businessRulesService.validateRestorationImages(requestId, request.bookId);
       return { valid: true, message: '修复照片完整性规则验证通过' };
     } catch (error) {
       throw error;
@@ -57,14 +56,16 @@ export class BusinessRulesController {
   @ApiOperation({ summary: '检查是否可开放阅览' })
   @ApiResponse({ status: 200, description: '检查完成' })
   async checkCanOpenForReading(@Param('requestId') requestId: string) {
-    return this.businessRulesService.checkCanOpenForReading(requestId);
+    const request = await this.requestService.findOne(requestId);
+    return this.businessRulesService.checkCanOpenForReading(requestId, request.bookId);
   }
 
   @Get('workflow/:requestId')
   @ApiOperation({ summary: '获取所需工作流' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getRequiredWorkflow(@Param('requestId') requestId: string) {
-    return this.businessRulesService.getRequiredWorkflow(requestId);
+    const request = await this.requestService.findOne(requestId);
+    return this.businessRulesService.getRequiredWorkflow(request.bookId);
   }
 
   @Get('rules')

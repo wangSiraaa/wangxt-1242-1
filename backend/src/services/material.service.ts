@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { Material } from '../entities/material.entity';
 
 @Injectable()
@@ -103,7 +103,7 @@ export class MaterialService {
     await this.materialRepository.delete(id);
   }
 
-  async getTypes(): Promise<string[]> {
+  async getCategories(): Promise<string[]> {
     const result = await this.materialRepository
       .createQueryBuilder('material')
       .select('DISTINCT material.type', 'type')
@@ -115,7 +115,7 @@ export class MaterialService {
 
   async getLowStock(threshold: number = 10): Promise<Material[]> {
     return this.materialRepository.find({
-      where: { quantity: () => `quantity <= ${threshold}` },
+      where: { quantity: LessThanOrEqual(threshold) },
       order: { quantity: 'ASC' },
     });
   }

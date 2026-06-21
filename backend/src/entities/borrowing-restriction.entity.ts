@@ -3,6 +3,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { AncientBook } from './ancient-book.entity';
 import { User } from './user.entity';
 
+export type RestrictionType = 'full' | 'reading_room_only' | 'supervised' | 'digital_only';
+
 @Entity('borrowing_restrictions')
 export class BorrowingRestriction {
   @ApiProperty({ description: '限制ID' })
@@ -13,9 +15,9 @@ export class BorrowingRestriction {
   @Column({ name: 'book_id', type: 'uuid' })
   bookId: string;
 
-  @ApiProperty({ description: '限制类型', maxLength: 50 })
-  @Column({ name: 'restriction_type', type: 'varchar', length: 50 })
-  restrictionType: string;
+  @ApiProperty({ description: '限制类型', enum: ['full', 'reading_room_only', 'supervised', 'digital_only'] })
+  @Column({ name: 'restriction_type', type: 'enum', enum: ['full', 'reading_room_only', 'supervised', 'digital_only'] })
+  restrictionType: RestrictionType;
 
   @ApiProperty({ description: '限制原因', required: false })
   @Column({ type: 'text', nullable: true })
@@ -33,9 +35,13 @@ export class BorrowingRestriction {
   @Column({ name: 'imposed_by', type: 'uuid', nullable: true })
   imposedById: string;
 
-  @ApiProperty({ description: '是否生效', default: true })
-  @Column({ name: 'is_active', type: 'boolean', default: true })
-  isActive: boolean;
+  @ApiProperty({ description: '是否需要专家评审', default: false })
+  @Column({ name: 'require_expert_review', type: 'boolean', default: false })
+  requireExpertReview: boolean;
+
+  @ApiProperty({ description: '状态', maxLength: 20, default: 'active' })
+  @Column({ name: 'status', type: 'varchar', length: 20, default: 'active' })
+  status: string;
 
   @ApiProperty({ description: '创建时间' })
   @CreateDateColumn({ name: 'created_at' })
